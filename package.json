@@ -1,0 +1,12 @@
+{
+  "name": "coc-th19-tracker",
+  "version": "1.0.0",
+  "description": "Seguimiento estático de mejoras de TH19, con filtros y progreso local",
+  "scripts": {
+    "test": "node test-model.cjs",
+    "check": "node --check dist/app.js && node --check dist/model.js && node --check dist/data.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
