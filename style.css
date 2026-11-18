@@ -5,3 +5,5 @@
 .filtergrid button,.sorting button{border-color:#000}.upgrade{user-select:none;cursor:grab}.upgrade.done{cursor:default}
 .upgrade.working{background:#b38b60;border-color:#4d321c}.actionicon.working{background:#a8865b;box-shadow:inset 0 0 0 2px #4d321c}
 .actionicon.finished{padding:0;border:0;background:transparent;box-shadow:none;overflow:hidden}.actionicon.finished img{width:44px;height:44px;max-width:none;max-height:none;object-fit:fill}
+
+#openpass{display:inline-flex;align-items:center;gap:6px;padding:3px 8px}#openpass img{width:34px;height:34px;object-fit:contain}.passoptions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.passoptions button[aria-pressed=true],#openpass[aria-pressed=true]{background:#ffce37;color:#251a10}@media(max-width:450px){.passoptions{grid-template-columns:repeat(2,minmax(0,1fr))}}

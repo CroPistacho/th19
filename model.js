@@ -56,6 +56,10 @@ const TH19Model=(()=>{
   }
   if(building){target.completed=0;target.building=true;}
  }
- return {expand,normalize,compare,move,previous,laneFor,typeFor,band,costCompare,reorder,progressExport,applyProgress,advance};
+ function catalogMatch(x,r){return x.name===r.name&&x.lane===r.lane&&(x.type==='Escuadrones')===r.squad&&x.target>=r.from&&x.target<=r.to;}
+ function mergeCatalog(items,catalog){let changed=0;for(const x of items){const r=catalog.find(r=>catalogMatch(x,r));if(!r)continue;const unknownCost=x.cost==null;for(const k of ['cost','hours'])if(x[k]==null&&r[k]!=null){x[k]=r[k];changed++;}if(r.resource&&((!x.catalogSource&&unknownCost)||x.resource==='Por confirmar'))x.resource=r.resource;x.catalogSource=r.source||'HTML adjuntos';}return changed;}
+ function boosted(x,percent){const factor=x.lane==='Constructores'&&[10,15,20].includes(percent)?1-percent/100:1;return {cost:x.cost==null?null:Math.round(x.cost*factor),hours:x.hours==null?null:x.hours*factor};}
+ function guideCompare(a,b,guide){const rank=x=>{const i=guide.findIndex(r=>catalogMatch(x,r));return i<0?1e6:i;};return rank(a)-rank(b)||a.target-b.target||a.unit-b.unit||compare(a,b);}
+ return {mergeCatalog,boosted,guideCompare,expand,normalize,compare,move,previous,laneFor,typeFor,band,costCompare,reorder,progressExport,applyProgress,advance};
 })();
 if(typeof module!=='undefined')module.exports=TH19Model;

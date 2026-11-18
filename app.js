@@ -7,6 +7,8 @@ const SMASHER='https://static.wikia.nocookie.net/clashofclans/images/d/db/Guardi
 let db=TH19Model.normalize({version:1,items:SEED,history:[]}),images={},lane='Constructores',showCompleted=false;
 let orders={},modes={},resources=new Set(),types=new Set(),undoState=null,draft=null,original='',jsonMode=false,autoTimer,storageError=false,importKind='progress',dragId=null,touchDrag=null;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let builderBoost=0;
+const PASSKEY=KEY+'-builder-pass',passMonth=()=>new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
 const taskLabel=x=>`${x.name}${x.showUnit?' · '+x.unit:''} · ${x.isNew?'NEW':x.target}`;
 const options=values=>values.map(value=>`<option>${esc(value)}</option>`).join('');
 function valid(x){
@@ -45,13 +47,15 @@ function art(x){const meta=(x.type==='Escuadrones'?images['squad:'+x.name]:null)
 function time(hours){if(hours==null)return '';const minutes=Math.round(hours*60),days=Math.floor(minutes/1440),h=Math.floor(minutes%1440/60),m=minutes%60;return [days?days+'d':'',h?h+'h':'',m?m+'m':''].filter(Boolean).join(' ')||'0m';}
 function card(x){
  const done=x.completed===1,working=!done&&!!x.building;
- const metadata=[x.cost!=null?Number(x.cost).toLocaleString('es-ES'):'',time(x.hours)].filter(Boolean).map(esc).join(' · ');
+ const values=TH19Model.boosted(x,builderBoost);
+ const metadata=[values.cost!=null?Number(values.cost).toLocaleString('es-ES'):'',time(values.hours)].filter(Boolean).map(esc).join(' · ');
  return `<article class="upgrade ${done?'done':working?'working':''}" data-id="${esc(x.id)}" draggable="false" tabindex="${done?-1:0}" aria-label="${esc(taskLabel(x)+(done?' · terminada':working?' · construyendo':''))}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown">
  ${art(x)}<div class="cardcopy"><button class="cardname" data-action="edit" ${done?'disabled':''}>${esc(x.name)}${x.showUnit?' · '+x.unit:''}</button>${metadata?`<span class="cardmeta">${metadata}</span>`:''}</div>
  <button class="actionicon ${done?'reserved':working?'working':''}" data-action="build" ${done?'disabled':''} aria-pressed="${working}" ${done?'aria-hidden="true" tabindex="-1"':''} aria-label="${esc((working?'Quitar constructor de ':'Poner a construir ')+taskLabel(x))}" title="${working?'Quitar constructor':'Poner a construir'}">${icon('villager')}</button>
  <button class="actionicon ${done?'finished':'finish'}" data-action="${done?'reopen':'finish'}" aria-pressed="${done}" aria-label="${esc((done?'Marcar pendiente ':'Terminar ')+taskLabel(x))}" title="${done?'Marcar pendiente':'Terminar'}">${done?icon('cancel'):icon(hammerFor(x))}</button></article>`;
 }
 function render(){
+ $('passlabel').textContent='Pase · '+builderBoost+' %';$('openpass').setAttribute('aria-pressed',builderBoost>0);$('passoptions').querySelectorAll('[data-boost]').forEach(b=>b.setAttribute('aria-pressed',Number(b.dataset.boost)===builderBoost));
  const done=db.items.filter(x=>x.completed===1).length;$('total').textContent=done+' / '+db.items.length;$('undo').disabled=!undoState;
  $('lanes').innerHTML=LANES.map(l=>`<button data-lane="${l}" aria-pressed="${lane===l}">${l}<small>${db.items.filter(x=>x.lane===l&&x.completed===0).length}</small></button>`).join('');
  $('showcompleted').textContent=showCompleted?'Ocultar terminadas':'Mostrar terminadas';$('showcompleted').setAttribute('aria-pressed',showCompleted);
@@ -94,6 +98,9 @@ $('board').onclick=e=>{
 };
 $('lanes').onclick=e=>{const button=e.target.closest('[data-lane]');if(!button)return;lane=button.dataset.lane;resources.clear();types.clear();$('search').value='';render();};
 $('search').oninput=render;$('showcompleted').onclick=()=>{showCompleted=!showCompleted;render();};$('undo').onclick=()=>{if(!undoState)return;({db,orders,modes}=undoState);undoState=null;save('Último cambio deshecho');};
+$('openpass').onclick=()=>$('passdialog').showModal();$('closepass').onclick=()=>$('passdialog').close();
+$('passoptions').onclick=e=>{const b=e.target.closest('[data-boost]');if(!b)return;builderBoost=Number(b.dataset.boost);try{localStorage.setItem(PASSKEY,JSON.stringify({month:passMonth(),percent:builderBoost}));notify('Descuento guardado');}catch{notify('No se pudo guardar el descuento.');}render();};
+$('guideorder').onclick=()=>{checkpoint();for(const l of LANES){orders[l]=db.items.filter(x=>x.lane===l).sort(l==='Mascotas'?(a,b)=>b.target-a.target:(a,b)=>TH19Model.guideCompare(a,b,GUIDE_ORDER)).map(x=>x.id);modes[l]='manual';}save('Orden de la guía aplicado; progreso conservado');};
 $('openfilters').onclick=()=>$('filters').showModal();$('closefilters').onclick=()=>$('filters').close();$('applyfilters').onclick=()=>$('filters').close();
 $('resourcefilters').onclick=e=>{const button=e.target.closest('[data-resource]');if(button){const v=button.dataset.resource;resources.has(v)?resources.delete(v):resources.add(v);render();}};
 $('typefilters').onclick=e=>{const button=e.target.closest('[data-type]');if(button){const v=button.dataset.type;types.has(v)?types.delete(v):types.add(v);render();}};
@@ -131,7 +138,9 @@ $('form').oninput=e=>{if(!jsonMode&&e.target.name==='base')$('form').elements.na
 $('delete').onclick=()=>{clearTimeout(autoTimer);checkpoint();db.items=db.items.filter(x=>x.id!==draft.id);forgetDraft();save('Tarea eliminada · puedes deshacer');$('editor').close();};$('copyjson').onclick=async()=>{try{await navigator.clipboard.writeText($('jsontext').value);$('formerror').textContent='Copiado';}catch{$('jsontext').select();$('formerror').textContent='Pulsa Ctrl+C para copiar.';}};
 $('movelane').innerHTML=options(LANES);$('movecategory').innerHTML=options(CATEGORIES);$('form').elements.namedItem('lane').innerHTML=options(LANES);$('form').elements.namedItem('category').innerHTML=options(CATEGORIES);$('form').elements.namedItem('type').innerHTML=options(['Ejército','Defensa','Héroes','Recursos','Tropas','Hechizos','Asedio','Escuadrones','Mascotas']);
 async function init(){
+ try{const pass=JSON.parse(localStorage.getItem(PASSKEY)||'null');if(pass?.month===passMonth()&&[0,10,15,20].includes(pass.percent))builderBoost=pass.percent;}catch{}
  try{const saved=localStorage.getItem(KEY);if(saved){const old=JSON.parse(saved),normalized=TH19Model.normalize(old);normalized.items.forEach(valid);if(old.version!==3)localStorage.setItem(KEY+'-backup-v'+old.version,saved);db=normalized;if(old.version!==3)localStorage.setItem(KEY,JSON.stringify(db));}const stored=JSON.parse(localStorage.getItem(ORDERKEY)||'{}');for(const l of LANES){if(Array.isArray(stored.orders?.[l])&&stored.orders[l].every(id=>typeof id==='string'))orders[l]=stored.orders[l];if(['costmax','costmin','manual'].includes(stored.modes?.[l]))modes[l]=stored.modes[l];}notify('Guardado automático');}catch{notify('No se pudo leer una copia local. Los datos anteriores se conservan.');}
+ TH19Model.mergeCatalog(db.items,UPGRADE_DATA);try{localStorage.setItem(KEY,JSON.stringify(db));}catch{notify('No se pudo guardar el catálogo actualizado.');}
  try{images=await(await fetch('images.json?v=20261117-squads',{cache:'no-store'})).json();}catch{notify('No se pudieron cargar las imágenes.');}render();
  try{const pending=JSON.parse(localStorage.getItem(DRAFTKEY)||'null');if(pending?.record){if([2,3].includes(pending.version)){const record=TH19Model.normalize({version:3,items:[pending.record],history:[]}).items[0];openEditor(record);original=JSON.stringify(db.items.find(x=>x.id===record.id)||{});if(pending.jsonMode){jsonMode=true;$('fields').hidden=true;$('jsonpanel').hidden=false;$('jsontext').value=pending.rawJSON;}$('dirty').textContent='Borrador recuperado';}else localStorage.setItem(KEY+'-legacy-draft',JSON.stringify(pending));}}catch{notify('No se pudo recuperar un borrador. El progreso sigue disponible.');}
 }

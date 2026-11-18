@@ -58,3 +58,21 @@ const pin2=accumulated.items.find(x=>x.name==='Torre pinchuda'&&x.unit===1&&x.ta
 model.advance(accumulated.items,pin2.id);assert.equal(accumulated.items.filter(x=>x.familyId===pin2.familyId&&x.unit===1&&x.completed===1).length,2);
 assert(accumulated.items.filter(x=>x.familyId===pin2.familyId&&x.unit===2).every(x=>x.completed===0));
 console.log('PASS: 232 tareas; migración, clasificación, estados, coste máximo/mínimo, grupos al final, mascotas descendentes, arrastre lógico y exportación de progreso sin orden.');
+
+vm.runInContext('globalThis.catalog=UPGRADE_DATA;globalThis.guide=GUIDE_ORDER;',context);
+const catalog=JSON.parse(JSON.stringify(context.catalog)),guide=JSON.parse(JSON.stringify(context.guide));
+const enriched=model.normalize({version:1,items:seed,history:[]});
+const kept=enriched.items.find(x=>x.name==='Ayuntamiento');kept.completed=1;kept.end='2026-11-25T12:00';kept.priority=3;
+model.mergeCatalog(enriched.items,catalog);
+assert.equal(kept.cost,27000000);assert.equal(kept.hours,312);assert.equal(kept.completed,1);assert.equal(kept.priority,3);assert.equal(kept.end,'2026-11-25T12:00');
+for(const [p,c] of [[0,27000000],[10,24300000],[15,22950000],[20,21600000]])assert.equal(model.boosted(kept,p).cost,c);
+assert(Math.abs(model.boosted(kept,20).hours-249.6)<1e-8);assert.equal(kept.cost,27000000);
+const archer=enriched.items.find(x=>x.name==='Arquera');assert.equal(archer.cost,31000000);assert.equal(archer.hours,336);assert.equal(model.boosted(archer,20).cost,31000000);
+const pet=enriched.items.find(x=>x.name==='Medusa'&&x.target===11);assert.equal(pet.cost,260000);assert.equal(pet.hours,180);assert.equal(model.boosted(pet,20).cost,260000);
+assert(enriched.items.filter(x=>x.name==='Cuartel de escuadrones').every(x=>x.cost==null&&x.hours==null));
+const squad=enriched.items.find(x=>x.name==='Esbirros'&&x.type==='Escuadrones');assert.equal(squad.resource,'Elixir oscuro');assert.equal(squad.cost,null);
+const temple=enriched.items.find(x=>x.name==='Templo de guardianes');assert.equal(temple.hours,0);assert.equal(temple.cost,null);
+kept.cost=123;kept.hours=4;model.mergeCatalog(enriched.items,catalog);assert.equal(kept.cost,123);assert.equal(kept.hours,4);
+assert.equal(enriched.items.filter(x=>x.lane==='Constructores').sort((a,b)=>model.guideCompare(a,b,guide))[0].name,'Ayuntamiento');
+assert.equal(model.boosted({lane:'Constructores',cost:null,hours:null},20).cost,null);
+console.log('PASS: catálogo por nivel; totales no repartidos; progreso y valores editados conservados; pase 0/10/15/20; laboratorio y mascotas sin descuento; orden de guía.');
