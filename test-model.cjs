@@ -93,3 +93,12 @@ stateList[2].completed=0;stateList[2].building=false;assert.deepEqual(stateIds(s
 model.advance(stateList,'pending');model.advance(stateList,'destructor');assert.deepEqual(stateIds(stateList),['oldDone','working','pending','destructor']);
 assert.deepEqual(stateIds(JSON.parse(JSON.stringify(stateList))),stateIds(stateList));
 console.log('PASS: bloques terminadas/construyendo/pendientes, orden estable, terminadas añadidas al final, reabrir y volver a terminar, persistencia y copia de progreso.');
+
+const legacyCollectors=model.normalize({version:1,items:seed,history:[]}).items.filter(x=>x.name==='Recolector de elixir');
+assert.equal(legacyCollectors.length,7);
+legacyCollectors.forEach((x,i)=>{x.resource='Elixir';x.catalogSource='Buildings.html';x.completed=i===0?1:0;x.building=i===1;x.cost=123+i;x.hours=72;x.priority=3;x.order=50+i;});
+const collectorBefore=structuredClone(legacyCollectors);model.mergeCatalog(legacyCollectors,catalog);
+assert(legacyCollectors.every(x=>x.resource==='Oro'));
+legacyCollectors.forEach((x,i)=>{const {resource,...after}=x;const {resource:old,...before}=collectorBefore[i];assert.deepEqual(after,before);});
+model.mergeCatalog(legacyCollectors,catalog);assert(legacyCollectors.every(x=>x.resource==='Oro'));
+console.log('PASS: los siete recolectores guardados en localStorage migran de elixir a oro sin cambiar costes personalizados, tiempos, estados, prioridades ni orden.');
