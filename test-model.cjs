@@ -69,10 +69,15 @@ for(const [p,c] of [[0,27000000],[10,24300000],[15,22950000],[20,21600000]])asse
 assert(Math.abs(model.boosted(kept,20).hours-249.6)<1e-8);assert.equal(kept.cost,27000000);
 const archer=enriched.items.find(x=>x.name==='Arquera');assert.equal(archer.cost,31000000);assert.equal(archer.hours,336);assert.equal(model.boosted(archer,20).cost,31000000);
 const pet=enriched.items.find(x=>x.name==='Medusa'&&x.target===11);assert.equal(pet.cost,260000);assert.equal(pet.hours,180);assert.equal(model.boosted(pet,20).cost,260000);
-assert(enriched.items.filter(x=>x.name==='Cuartel de escuadrones').every(x=>x.cost==null&&x.hours==null));
-const squad=enriched.items.find(x=>x.name==='Esbirros'&&x.type==='Escuadrones');assert.equal(squad.resource,'Elixir oscuro');assert.equal(squad.cost,null);
-const temple=enriched.items.find(x=>x.name==='Templo de guardianes');assert.equal(temple.hours,0);assert.equal(temple.cost,null);
+const allBarracks=enriched.items.filter(x=>x.name==='Cuartel de escuadrones');assert.equal(allBarracks.reduce((n,x)=>n+x.cost,0),153500000);assert.equal(allBarracks.reduce((n,x)=>n+x.hours,0),2364);
+const squad=enriched.items.find(x=>x.name==='Esbirros'&&x.type==='Escuadrones');assert.equal(squad.resource,'Elixir oscuro');assert.equal(squad.cost,370000);assert.equal(squad.hours,276);
+const temple=enriched.items.find(x=>x.name==='Templo de guardianes');assert.equal(temple.hours,0);assert.equal(temple.cost,0);
 kept.cost=123;kept.hours=4;model.mergeCatalog(enriched.items,catalog);assert.equal(kept.cost,123);assert.equal(kept.hours,4);
 assert.equal(enriched.items.filter(x=>x.lane==='Constructores').sort((a,b)=>model.guideCompare(a,b,guide))[0].name,'Ayuntamiento');
 assert.equal(model.boosted({lane:'Constructores',cost:null,hours:null},20).cost,null);
 console.log('PASS: catálogo por nivel; totales no repartidos; progreso y valores editados conservados; pase 0/10/15/20; laboratorio y mascotas sin descuento; orden de guía.');
+
+assert.equal(enriched.items.filter(x=>x.cost!=null).length,232);assert.equal(enriched.items.filter(x=>x.hours!=null).length,232);
+for(const unit of [1,2]){const cards=enriched.items.filter(x=>x.name==='Torre pinchuda'&&x.unit===unit).sort((a,b)=>a.target-b.target);assert.deepEqual(cards.map(x=>x.cost),[500000,510000]);assert.deepEqual(cards.map(x=>x.hours),[360,372]);}
+const named=(n,l)=>enriched.items.find(x=>x.name===n&&x.target===l&&x.type==='Escuadrones');assert.equal(named('Bárbaros y arqueras',2).cost+named('Bárbaros y arqueras',3).cost,56000000);assert.equal(named('Bárbaros y arqueras',2).hours+named('Bárbaros y arqueras',3).hours,636);
+console.log('PASS: 232/232 costes y tiempos por nivel; torre pinchuda en ambas unidades; sumas de cuartel y squads coinciden con los HTML.');

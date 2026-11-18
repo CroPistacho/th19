@@ -7,3 +7,14 @@
 .actionicon.finished{padding:0;border:0;background:transparent;box-shadow:none;overflow:hidden}.actionicon.finished img{width:44px;height:44px;max-width:none;max-height:none;object-fit:fill}
 
 #openpass{display:inline-flex;align-items:center;gap:6px;padding:3px 8px}#openpass img{width:34px;height:34px;object-fit:contain}.passoptions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.passoptions button[aria-pressed=true],#openpass[aria-pressed=true]{background:#ffce37;color:#251a10}@media(max-width:450px){.passoptions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.upgrade.resource-gold{background:#e6cb83;border-color:#735c2b;box-shadow:inset 0 1px #fff3c9}
+.upgrade.resource-elixir{background:#e6b6dc;border-color:#754369;box-shadow:inset 0 1px #ffddf5}
+.upgrade.resource-dark{background:#bfb5d1;border-color:#504361;box-shadow:inset 0 1px #e4dcef}
+.upgrade.resource-gold.working{background:#c6a65f;border-color:#5d461c}
+.upgrade.resource-elixir.working{background:#bf88b3;border-color:#613653}
+.upgrade.resource-dark.working{background:#9487ad;border-color:#40344f}
+.upgrade.working.resource-gold .cardname,.upgrade.working.resource-elixir .cardname,.upgrade.working.resource-dark .cardname{color:#251a10}
+.upgrade.working.resource-gold .cardmeta,.upgrade.working.resource-elixir .cardmeta,.upgrade.working.resource-dark .cardmeta{color:#251a10}
+
+.filterfoot{flex-wrap:wrap}.filterfoot button{flex:1 1 auto}#manualsort[aria-pressed=true]{background:#ffce37;color:#251a10}

@@ -46,10 +46,10 @@ function hammerFor(x){return x.lane==='Mascotas'||x.category==='Héroes'?'heroHa
 function art(x){const meta=(x.type==='Escuadrones'?images['squad:'+x.name]:null)||images[x.asset]||images[x.name],src=x.image||(x.name==='Destructor'?SMASHER:meta?.src);return `<div class="art" title="${esc(taskLabel(x))}">${src?`<img src="${esc(src)}" alt="${esc(x.name)}" referrerpolicy="no-referrer" loading="lazy" draggable="false">`:'<span class="missingart" aria-hidden="true"></span>'}<span class="level">${x.isNew?'NEW':x.target}</span></div>`;}
 function time(hours){if(hours==null)return '';const minutes=Math.round(hours*60),days=Math.floor(minutes/1440),h=Math.floor(minutes%1440/60),m=minutes%60;return [days?days+'d':'',h?h+'h':'',m?m+'m':''].filter(Boolean).join(' ')||'0m';}
 function card(x){
- const done=x.completed===1,working=!done&&!!x.building;
+ const done=x.completed===1,working=!done&&!!x.building,resourceClass=({'Oro':'resource-gold','Elixir':'resource-elixir','Elixir oscuro':'resource-dark'})[x.resource]||'';
  const values=TH19Model.boosted(x,builderBoost);
  const metadata=[values.cost!=null?Number(values.cost).toLocaleString('es-ES'):'',time(values.hours)].filter(Boolean).map(esc).join(' · ');
- return `<article class="upgrade ${done?'done':working?'working':''}" data-id="${esc(x.id)}" draggable="false" tabindex="${done?-1:0}" aria-label="${esc(taskLabel(x)+(done?' · terminada':working?' · construyendo':''))}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown">
+ return `<article class="upgrade ${resourceClass} ${done?'done':working?'working':''}" data-id="${esc(x.id)}" draggable="false" tabindex="${done?-1:0}" aria-label="${esc(taskLabel(x)+(done?' · terminada':working?' · construyendo':''))}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown">
  ${art(x)}<div class="cardcopy"><button class="cardname" data-action="edit" ${done?'disabled':''}>${esc(x.name)}${x.showUnit?' · '+x.unit:''}</button>${metadata?`<span class="cardmeta">${metadata}</span>`:''}</div>
  <button class="actionicon ${done?'reserved':working?'working':''}" data-action="build" ${done?'disabled':''} aria-pressed="${working}" ${done?'aria-hidden="true" tabindex="-1"':''} aria-label="${esc((working?'Quitar constructor de ':'Poner a construir ')+taskLabel(x))}" title="${working?'Quitar constructor':'Poner a construir'}">${icon('villager')}</button>
  <button class="actionicon ${done?'finished':'finish'}" data-action="${done?'reopen':'finish'}" aria-pressed="${done}" aria-label="${esc((done?'Marcar pendiente ':'Terminar ')+taskLabel(x))}" title="${done?'Marcar pendiente':'Terminar'}">${done?icon('cancel'):icon(hammerFor(x))}</button></article>`;
@@ -59,7 +59,7 @@ function render(){
  const done=db.items.filter(x=>x.completed===1).length;$('total').textContent=done+' / '+db.items.length;$('undo').disabled=!undoState;
  $('lanes').innerHTML=LANES.map(l=>`<button data-lane="${l}" aria-pressed="${lane===l}">${l}<small>${db.items.filter(x=>x.lane===l&&x.completed===0).length}</small></button>`).join('');
  $('showcompleted').textContent=showCompleted?'Ocultar terminadas':'Mostrar terminadas';$('showcompleted').setAttribute('aria-pressed',showCompleted);
- const list=visible();$('viewinfo').textContent=list.length+' mejoras · '+(mode()==='manual'?'Orden manual':mode()==='costmin'?'Cost Min':'Cost Max');$('manualsort').hidden=!orders[lane]?.length;$('manualsort').setAttribute('aria-pressed',mode()==='manual');
+ const list=visible();$('viewinfo').textContent=list.length+' mejoras · '+(mode()==='manual'?'Orden manual':mode()==='costmin'?'Cost Min':'Cost Max');$('manualsort').disabled=!orders[lane]?.length;$('manualsort').title=orders[lane]?.length?'Recuperar tu orden guardado':'Arrastra una tarjeta o aplica la guía para guardar un orden';$('manualsort').setAttribute('aria-pressed',mode()==='manual');
  $('board').innerHTML=list.length?list.map(card).join(''):'<div class="empty"><p>No hay mejoras con estos filtros.</p><button id="clearfilters">Limpiar filtros</button></div>';
  $('board').querySelectorAll('.art img').forEach(img=>img.onerror=()=>{img.hidden=true;});
  renderFilters();renderManager();
