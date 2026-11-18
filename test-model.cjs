@@ -81,3 +81,15 @@ assert.equal(enriched.items.filter(x=>x.cost!=null).length,232);assert.equal(enr
 for(const unit of [1,2]){const cards=enriched.items.filter(x=>x.name==='Torre pinchuda'&&x.unit===unit).sort((a,b)=>a.target-b.target);assert.deepEqual(cards.map(x=>x.cost),[500000,510000]);assert.deepEqual(cards.map(x=>x.hours),[360,372]);}
 const named=(n,l)=>enriched.items.find(x=>x.name===n&&x.target===l&&x.type==='Escuadrones');assert.equal(named('Bárbaros y arqueras',2).cost+named('Bárbaros y arqueras',3).cost,56000000);assert.equal(named('Bárbaros y arqueras',2).hours+named('Bárbaros y arqueras',3).hours,636);
 console.log('PASS: 232/232 costes y tiempos por nivel; torre pinchuda en ambas unidades; sumas de cuartel y squads coinciden con los HTML.');
+
+const stateList=[{id:'pending',name:'Pending',unit:1,target:1,completed:0,building:false},{id:'oldDone',name:'Old',unit:1,target:1,completed:1,building:false},{id:'destructor',name:'Destructor',unit:1,target:6,completed:0,building:false},{id:'working',name:'Working',unit:1,target:1,completed:0,building:true}];
+const stateIds=list=>list.slice().sort(model.statusCompare).map(x=>x.id);
+assert.deepEqual(stateIds(stateList),['oldDone','working','pending','destructor']);
+model.advance(stateList,'destructor',true);assert.deepEqual(stateIds(stateList),['oldDone','destructor','working','pending']);
+model.advance(stateList,'working');assert.deepEqual(stateIds(stateList),['oldDone','working','destructor','pending']);
+model.advance(stateList,'destructor');assert.deepEqual(stateIds(stateList),['oldDone','working','destructor','pending']);
+assert.deepEqual(stateIds(model.applyProgress(stateList,model.progressExport(stateList))),stateIds(stateList));
+stateList[2].completed=0;stateList[2].building=false;assert.deepEqual(stateIds(stateList),['oldDone','working','pending','destructor']);
+model.advance(stateList,'pending');model.advance(stateList,'destructor');assert.deepEqual(stateIds(stateList),['oldDone','working','pending','destructor']);
+assert.deepEqual(stateIds(JSON.parse(JSON.stringify(stateList))),stateIds(stateList));
+console.log('PASS: bloques terminadas/construyendo/pendientes, orden estable, terminadas añadidas al final, reabrir y volver a terminar, persistencia y copia de progreso.');

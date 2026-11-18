@@ -40,19 +40,22 @@ const TH19Model=(()=>{
   return compare(a,b);
  }
  function reorder(ids,source,target,after=false){const list=ids.filter(id=>id!==source);const at=list.indexOf(target);if(at<0||source===target)return ids.slice();list.splice(at+(after?1:0),0,source);return list;}
- function progressExport(items){return {format:'th19-progress',version:1,tasks:items.map(x=>({id:x.id,completed:x.completed,building:!!x.building,end:x.end||''})),definitions:items.filter(x=>!x.id.startsWith('seed-')).map(({order,priority,...x})=>x)};}
+ const completedRank=x=>Number.isSafeInteger(x.completedOrder)&&x.completedOrder>=0?x.completedOrder:0;
+ function statusCompare(a,b){const band=x=>x.completed===1?0:x.building?1:2;const group=band(a)-band(b);return group||(a.completed===1&&b.completed===1?completedRank(a)-completedRank(b):0);}
+ function progressExport(items){return {format:'th19-progress',version:1,tasks:items.map(x=>({id:x.id,completed:x.completed,building:!!x.building,end:x.end||'',completedOrder:completedRank(x)})),definitions:items.filter(x=>!x.id.startsWith('seed-')).map(({order,priority,...x})=>x)};}
  function applyProgress(items,data){
   if(data?.format!=='th19-progress'||data.version!==1||!Array.isArray(data.tasks)||data.tasks.length>5000)throw Error('El archivo no es una copia de progreso.');
   if(new Set(data.tasks.map(x=>x.id)).size!==data.tasks.length)throw Error('La copia contiene tareas duplicadas.');
   const result=structuredClone(items);
-  for(const task of data.tasks){if(typeof task.id!=='string'||![0,1].includes(task.completed)||typeof task.building!=='boolean'||typeof task.end!=='string'||(task.end&&!Number.isFinite(new Date(task.end).getTime())))throw Error('La copia contiene un estado no válido.');const x=result.find(x=>x.id===task.id);if(x){x.completed=task.completed;x.building=task.completed===1?false:task.building;x.end=task.completed===1?'':task.end;}}
+  for(const task of data.tasks){if(typeof task.id!=='string'||![0,1].includes(task.completed)||typeof task.building!=='boolean'||typeof task.end!=='string'||(task.end&&!Number.isFinite(new Date(task.end).getTime())))throw Error('La copia contiene un estado no válido.');if(task.completedOrder!=null&&(!Number.isSafeInteger(task.completedOrder)||task.completedOrder<0))throw Error('La secuencia de terminadas no es válida.');const x=result.find(x=>x.id===task.id);if(x){x.completedOrder=task.completed===1?completedRank(task):0;x.completed=task.completed;x.building=task.completed===1?false:task.building;x.end=task.completed===1?'':task.end;}}
   return result;
  }
  function advance(items,id,building=false){
   const target=items.find(x=>x.id===id);if(!target)throw Error('La tarea ya no existe.');
-  for(const x of items){
+  let sequence=items.reduce((n,x)=>Math.max(n,completedRank(x)),0);
+  for(const x of items.slice().sort((a,b)=>a.target-b.target)){
    const sameUnit=x.unit===target.unit&&(target.familyId?x.familyId===target.familyId:x.name===target.name);
-   if(sameUnit&&x.target<=target.target-(building?1:0)){x.completed=1;x.building=false;x.end='';}
+   if(sameUnit&&x.target<=target.target-(building?1:0)){if(x.completed!==1)x.completedOrder=++sequence;x.completed=1;x.building=false;x.end='';}
   }
   if(building){target.completed=0;target.building=true;}
  }
@@ -60,6 +63,6 @@ const TH19Model=(()=>{
  function mergeCatalog(items,catalog){let changed=0;for(const x of items){const r=catalog.find(r=>r.from===r.to&&catalogMatch(x,r))||catalog.find(r=>catalogMatch(x,r));if(!r)continue;const unknownCost=x.cost==null;for(const k of ['cost','hours'])if(x[k]==null&&r[k]!=null){x[k]=r[k];changed++;}if(r.resource&&((!x.catalogSource&&unknownCost)||x.resource==='Por confirmar'))x.resource=r.resource;x.catalogSource=r.source||'HTML adjuntos';}return changed;}
  function boosted(x,percent){const factor=x.lane==='Constructores'&&[10,15,20].includes(percent)?1-percent/100:1;return {cost:x.cost==null?null:Math.round(x.cost*factor),hours:x.hours==null?null:x.hours*factor};}
  function guideCompare(a,b,guide){const rank=x=>{const i=guide.findIndex(r=>catalogMatch(x,r));return i<0?1e6:i;};return rank(a)-rank(b)||a.target-b.target||a.unit-b.unit||compare(a,b);}
- return {mergeCatalog,boosted,guideCompare,expand,normalize,compare,move,previous,laneFor,typeFor,band,costCompare,reorder,progressExport,applyProgress,advance};
+ return {statusCompare,mergeCatalog,boosted,guideCompare,expand,normalize,compare,move,previous,laneFor,typeFor,band,costCompare,reorder,progressExport,applyProgress,advance};
 })();
 if(typeof module!=='undefined')module.exports=TH19Model;
