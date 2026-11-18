@@ -18,3 +18,5 @@
 .upgrade.working.resource-gold .cardmeta,.upgrade.working.resource-elixir .cardmeta,.upgrade.working.resource-dark .cardmeta{color:#251a10}
 
 .filterfoot{flex-wrap:wrap}.filterfoot button{flex:1 1 auto}#manualsort[aria-pressed=true]{background:#ffce37;color:#251a10}
+
+.upgrade.done{background:#d0d0d0;border-color:#858585;box-shadow:inset 0 1px #e7e7e7}.upgrade.done .cardname,.upgrade.done .cardmeta{color:#464646}
